@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.ArrayList;
 import java.util.List;
 
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {"http://localhost:5173", "https://todo-list-frontend-165i.onrender.com"})
 @RestController
 public class TodoController {
 
