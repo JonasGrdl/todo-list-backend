@@ -1,52 +1,21 @@
 package com.example.demo;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+import java.time.*;
 
 @Entity
 public class Task {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    Long id;
+    String name;
+    @Column(length = 2000)
+    String description;
+    boolean done;
+    String priority;
+    LocalDate dueDate;
+    Instant createdAt;
+    Instant updatedAt;
 
-    // Attribute
-    private String name;
-    private String description;
-    private boolean done;
-
-    // ID generator
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    // Constructor
-    public Task(String name) {
-        this.name = name;
-    }
-    public Task() {}
-
-    // Getter
-    public String getName() {
-        return name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public boolean isDone() {
-        return done;
-    }
-
-    // Setter
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setDone(boolean done) {
-        this.done = done;
-    }
+    @PrePersist void created() { createdAt = updatedAt = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS); }
+    @PreUpdate void updated() { updatedAt = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS); }
 }
