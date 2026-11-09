@@ -2,6 +2,7 @@ package com.example.demo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -83,5 +84,47 @@ class TodoControllerTest {
         verify(service).save(captor.capture());
         assertThat(captor.getValue().getId()).isNull();
         assertThat(captor.getValue().getName()).isEqualTo("Neu");
+    }
+
+    @Test
+    void createTodo_validName_returns201() throws Exception {
+        when(service.save(any(Task.class))).thenReturn(task(1L, "Lernen", "Kapitel 3", false));
+
+        mvc.perform(post("/todos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Lernen\",\"description\":\"Kapitel 3\",\"done\":false}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("Lernen"));
+    }
+
+    @Test
+    void createTodo_emptyName_returns400() throws Exception {
+        mvc.perform(post("/todos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"\",\"description\":\"x\",\"done\":false}"))
+                .andExpect(status().isBadRequest());
+
+        verify(service, never()).save(any());
+    }
+
+    @Test
+    void createTodo_blankName_returns400() throws Exception {
+        mvc.perform(post("/todos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"   \",\"description\":\"x\",\"done\":false}"))
+                .andExpect(status().isBadRequest());
+
+        verify(service, never()).save(any());
+    }
+
+    @Test
+    void createTodo_missingName_returns400() throws Exception {
+        mvc.perform(post("/todos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"description\":\"x\",\"done\":false}"))
+                .andExpect(status().isBadRequest());
+
+        verify(service, never()).save(any());
     }
 }
