@@ -42,7 +42,7 @@ public class TodoController {
     @ResponseStatus(HttpStatus.CREATED)
     public Task createTodo(@RequestBody Task task) {
         // Erst prüfen, dann speichern: ein ungültiger Name landet nie in der Datenbank
-        requireName(task);
+        validateTask(task);
         return service.save(task);
     }
 
@@ -50,21 +50,34 @@ public class TodoController {
     @PutMapping("/todos/{id}")
     public Task updateTodo(@PathVariable Long id, @RequestBody Task task) {
         // Erst validieren (400, kein Datenbankzugriff), dann aktualisieren
-        requireName(task);
+        validateTask(task);
         // Die id kommt aus dem Pfad; eine id im Body wird von Jackson ohnehin ignoriert (READ_ONLY)
         return service.update(id, task)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task nicht gefunden"));
     }
 
+    /** Maximale Länge für name und description: entspricht der Spalte varchar(255) in der Datenbank. */
+    static final int MAX_LENGTH = 255;
+
     /**
-     * Prüft, ob der Task einen Namen hat. Fehlt der Name (null) oder besteht er nur
-     * aus Leerzeichen, wird ein Fehler mit HTTP-Status 400 (Bad Request) geworfen.
-     * Die Methode gibt nichts zurück; sie ist nur dazu da, bei ungültigen Daten abzubrechen.
+     * Prüft die Eingaben eines Tasks und wirft bei ungültigen Daten einen Fehler
+     * mit HTTP-Status 400 (Bad Request):
+     * - name darf nicht fehlen (null) und nicht nur aus Leerzeichen bestehen
+     * - name und description dürfen höchstens MAX_LENGTH Zeichen lang sein
+     * Ohne diese Prüfung würde die Datenbank zu lange Texte ablehnen und der
+     * Client bekäme einen 500er (Serverfehler) statt einer verständlichen 400.
      */
-    private static void requireName(Task task) {
+    private static void validateTask(Task task) {
         // isBlank() ist true bei einem leeren Text und bei Text, der nur aus Leerzeichen besteht
         if (task.getName() == null || task.getName().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name darf nicht leer sein");
+        }
+        if (task.getName().length() > MAX_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name darf höchstens " + MAX_LENGTH + " Zeichen lang sein");
+        }
+        // description ist optional (darf null sein), aber nicht zu lang
+        if (task.getDescription() != null && task.getDescription().length() > MAX_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "description darf höchstens " + MAX_LENGTH + " Zeichen lang sein");
         }
     }
 }

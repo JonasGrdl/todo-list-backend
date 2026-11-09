@@ -137,6 +137,61 @@ class TodoControllerTest {
         verify(service, never()).save(any());
     }
 
+    // Hilfsmethode: Text mit genau n Zeichen
+    static String text(int n) {
+        return "a".repeat(n);
+    }
+
+    @Test
+    void createTodo_nameWith255Chars_returns201() throws Exception {
+        when(service.save(any(Task.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        mvc.perform(post("/todos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"" + text(255) + "\",\"description\":\"" + text(255) + "\"}"))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void createTodo_nameTooLong_returns400() throws Exception {
+        mvc.perform(post("/todos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"" + text(256) + "\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(service, never()).save(any());
+    }
+
+    @Test
+    void createTodo_descriptionTooLong_returns400() throws Exception {
+        mvc.perform(post("/todos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"ok\",\"description\":\"" + text(256) + "\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(service, never()).save(any());
+    }
+
+    @Test
+    void updateTodo_nameTooLong_returns400() throws Exception {
+        mvc.perform(put("/todos/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"" + text(256) + "\",\"description\":\"\",\"done\":false}"))
+                .andExpect(status().isBadRequest());
+
+        verify(service, never()).update(any(), any());
+    }
+
+    @Test
+    void updateTodo_descriptionTooLong_returns400() throws Exception {
+        mvc.perform(put("/todos/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"ok\",\"description\":\"" + text(256) + "\",\"done\":false}"))
+                .andExpect(status().isBadRequest());
+
+        verify(service, never()).update(any(), any());
+    }
+
     @Test
     void updateTodo_existing_returns200() throws Exception {
         when(service.update(eq(1L), any(Task.class)))
