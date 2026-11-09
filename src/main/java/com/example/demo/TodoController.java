@@ -6,7 +6,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/todos")
-@CrossOrigin(origins = "${FRONTEND_URL:http://localhost:5173}")
+@CrossOrigin(origins = {"http://localhost:5173", "${FRONTEND_URL:https://todo-list-frontend-165i.onrender.com}"})
 public class TodoController {
     private final TaskService service;
     public TodoController(TaskService service) { this.service = service; }
