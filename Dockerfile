@@ -8,7 +8,10 @@ RUN chmod +x gradlew && ./gradlew bootJar --no-daemon
 # Stufe 2: Schlankes Laufzeit-Image
 FROM eclipse-temurin:25-jre
 WORKDIR /app
+# Eigener Benutzer ohne Root-Rechte
+RUN useradd --system --uid 10001 --no-create-home appuser
 COPY --from=build /app/build/libs/*.jar app.jar
+USER appuser
 # Render setzt PORT; die App liest ihn über server.port=${PORT:8080}
 EXPOSE 8080
 # Speicher an kleine Render-Instanzen (512 MB) anpassen
