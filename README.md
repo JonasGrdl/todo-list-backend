@@ -50,5 +50,5 @@ Hibernate läuft mit `ddl-auto=validate`.
 ## Deployment
 
 Docker-Image (`Dockerfile`) auf Render, Health Check `/actuator/health`. Umgebungsvariablen:
-`JDBC_DATABASE_URL`, `JDBC_DATABASE_USERNAME`, `JDBC_DATABASE_PASSWORD`, `CORS_ALLOWED_ORIGINS`.
+`JDBC_DATABASE_URL`, `JDBC_DATABASE_USERNAME`, `JDBC_DATABASE_PASSWORD`, `FRONTEND_URL`.
 CI: `.github/workflows/ci.yml`.

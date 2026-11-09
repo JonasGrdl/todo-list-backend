@@ -12,7 +12,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 /**
  * Zentrale Web-Konfiguration.
  * CORS: Erlaubt sind nur die Frontend-Adressen aus der Umgebungsvariable
- * CORS_ALLOWED_ORIGINS (kommagetrennt). Fremde Origins erhalten beim Preflight 403.
+ * FRONTEND_URL (kommagetrennt). Fremde Origins erhalten beim Preflight 403.
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
@@ -20,7 +20,13 @@ public class WebConfig implements WebMvcConfigurer {
     private final List<String> allowedOrigins;
 
     public WebConfig(@Value("${app.cors.allowed-origins}") List<String> allowedOrigins) {
-        this.allowedOrigins = allowedOrigins.stream().map(String::strip).filter(s -> !s.isEmpty()).toList();
+        // Leerzeichen und einen Schrägstrich am Ende entfernen: Der Browser schickt den Origin
+        // immer ohne "/", z. B. "https://app.onrender.com".
+        this.allowedOrigins = allowedOrigins.stream()
+                .map(String::strip)
+                .map(s -> s.endsWith("/") ? s.substring(0, s.length() - 1) : s)
+                .filter(s -> !s.isEmpty())
+                .toList();
     }
 
     @Override
