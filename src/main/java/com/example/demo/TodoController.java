@@ -12,7 +12,9 @@ import org.springframework.web.server.ResponseStatusException;
 @CrossOrigin(origins = {
         "http://localhost:5173",
         "https://todo-list-frontend-165i.onrender.com"
-})
+}, methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT})
+// Erlaubt sind nur diese drei Methoden und genau diese zwei Origins (keine Wildcards).
+// Fremde Origins bekommen beim Preflight automatisch 403.
 public class TodoController {
 
     private final TaskService service;
@@ -42,6 +44,16 @@ public class TodoController {
         // Erst prüfen, dann speichern: ein ungültiger Name landet nie in der Datenbank
         requireName(task);
         return service.save(task);
+    }
+
+    /** PUT /todos/{id}: Ändert name, description und done eines Tasks. 400 bei leerem Namen, 404 bei unbekannter id. */
+    @PutMapping("/todos/{id}")
+    public Task updateTodo(@PathVariable Long id, @RequestBody Task task) {
+        // Erst validieren (400, kein Datenbankzugriff), dann aktualisieren
+        requireName(task);
+        // Die id kommt aus dem Pfad; eine id im Body wird von Jackson ohnehin ignoriert (READ_ONLY)
+        return service.update(id, task)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task nicht gefunden"));
     }
 
     /**
