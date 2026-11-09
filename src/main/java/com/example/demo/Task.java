@@ -1,5 +1,11 @@
 package com.example.demo;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+
+@Entity
 public class Task {
 
     // Attribute
@@ -7,11 +13,16 @@ public class Task {
     private String description;
     private boolean done;
 
+    // ID generator
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     // Constructor
     public Task(String name) {
         this.name = name;
     }
+    public Task() {}
 
     // Getter
     public String getName() {

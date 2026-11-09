@@ -1,25 +1,29 @@
 package com.example.demo;
 
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
-
-@CrossOrigin(origins = {"http://localhost:5173", "https://todo-list-frontend-165i.onrender.com"})
 @RestController
+@CrossOrigin(origins = {
+        "http://localhost:5173",
+        "https://todo-list-frontend-165i.onrender.com"
+})
 public class TodoController {
 
-    private List<Task> tasks = new ArrayList<>();
+    private final TaskService service;
 
-    public TodoController() {
-        tasks.add(new Task("Erster Task"));
-        tasks.get(0).setDescription("Das ist ein Task");
+    public TodoController(TaskService service) {
+        this.service = service;
     }
 
     @GetMapping("/todos")
-    public List<Task> getTodos() {
-        return tasks;
+    public Iterable<Task> getTodos() {
+        return service.getAll();
+    }
+
+    @PostMapping("/todos")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Task createTodo(@RequestBody Task task) {
+        return service.save(task);
     }
 }
