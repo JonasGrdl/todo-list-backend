@@ -1,10 +1,15 @@
 package com.example.demo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
+/**
+ * Ein Task (eine Aufgabe in der Todo-Liste). Wird als Datensatz in der Datenbank
+ * gespeichert (@Entity) und als JSON an das Frontend geschickt.
+ */
 @Entity
 public class Task {
 
@@ -14,8 +19,11 @@ public class Task {
     private boolean done;
 
     // ID generator
+    // Die id wird von der Datenbank vergeben. READ_ONLY heißt: Sie wird im JSON
+    // ausgegeben, aber beim Empfangen eines Requests ignoriert.
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long id;
 
     // Constructor
@@ -25,6 +33,12 @@ public class Task {
     public Task() {}
 
     // Getter
+    /** Gibt die von der Datenbank vergebene id zurück (null, solange der Task nicht gespeichert ist). */
+    public Long getId() {
+        return id;
+    }
+
+    /** Gibt den Namen des Tasks zurück. */
     public String getName() {
         return name;
     }
