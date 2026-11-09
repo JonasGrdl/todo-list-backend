@@ -39,6 +39,20 @@ public class TodoController {
     @PostMapping("/todos")
     @ResponseStatus(HttpStatus.CREATED)
     public Task createTodo(@RequestBody Task task) {
+        // Erst prüfen, dann speichern: ein ungültiger Name landet nie in der Datenbank
+        requireName(task);
         return service.save(task);
+    }
+
+    /**
+     * Prüft, ob der Task einen Namen hat. Fehlt der Name (null) oder besteht er nur
+     * aus Leerzeichen, wird ein Fehler mit HTTP-Status 400 (Bad Request) geworfen.
+     * Die Methode gibt nichts zurück; sie ist nur dazu da, bei ungültigen Daten abzubrechen.
+     */
+    private static void requireName(Task task) {
+        // isBlank() ist true bei einem leeren Text und bei Text, der nur aus Leerzeichen besteht
+        if (task.getName() == null || task.getName().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name darf nicht leer sein");
+        }
     }
 }
