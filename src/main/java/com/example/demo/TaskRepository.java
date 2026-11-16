@@ -1,6 +1,9 @@
 package com.example.demo;
 
-import org.springframework.data.repository.CrudRepository;
+import java.util.*;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface TaskRepository extends CrudRepository<Task, Long> {
+interface TaskRepository extends JpaRepository<Task, Long> {
+    List<Task> findByOwner_Id(UUID owner);
+    Optional<Task> findByIdAndOwner_Id(long id, UUID owner);
 }
