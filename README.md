@@ -13,8 +13,9 @@ Eine eigene PostgreSQL-Entwicklungsdatenbank und einen Benutzer mit Rechten für
 | JDBC_DATABASE_PASSWORD | Platzhalter für das Datenbankpasswort |
 | SPRING_PROFILES_ACTIVE | dev für lokale Entwicklung über HTTP. Im Produktivbetrieb weglassen. |
 | FRONTEND_URL | Exakte öffentliche Frontend-Origin ohne abschließenden Slash. Lokal im dev-Profil standardmäßig http://localhost:5173 |
-| RESEND_FROM | ToDoList <konto@mail.example.org> (Adresse auf der verifizierten Domain) |
-| RESEND_API_KEY | Bereits als Backend-Secret hinterlegt. Für lokalen echten Versand im Backend-Prozess bereitstellen. |
+| MAILJET_FROM | Einzelne in Mailjet bestätigte Absenderadresse, z. B. jonas.groedl@student.htw-berlin.de (ohne Anzeigename/Klammern) |
+| MAILJET_API_KEY | Öffentlicher API-Key aus Mailjet, ausschließlich im Backend hinterlegen. |
+| MAILJET_SECRET_KEY | Zugehöriger geheimer API-Key, ausschließlich als Backend-Secret hinterlegen. |
 | PORT | Optional, standardmäßig 8080 |
 | VITE_BACKEND_BASE_URL | Nur im Frontend. Lokales Beispiel http://localhost:8080, im Deployment öffentliche HTTPS-API-Origin oder gleicher Origin mittels Reverse Proxy. |
 
@@ -26,18 +27,21 @@ Mit Java 25 im Backend-Verzeichnis starten:
 
 Im Frontend-Verzeichnis mit Node 26 `npm ci` und `npm run dev` ausführen. Im Browser http://localhost:5173 öffnen, registrieren, die Bestätigungsmail öffnen, den Button betätigen und sich anmelden.
 
-## Resend einrichten
+## Mailjet einrichten
 
-1. In Resend unter Domains eine eigene Absenderdomain oder Subdomain wie `mail.example.org` hinzufügen.
-2. Beim DNS-Anbieter die von Resend für die gewählte Region angezeigten DKIM- und SPF-Einträge einschließlich des angezeigten MX-Eintrags für den Return-Path exakt übernehmen. Die DNS-Werte aus dem eigenen Dashboard verwenden.
-3. In Resend die Verifizierung starten und auf den Status „Verified“ warten. Für diese Transaktionsmails Klicktracking deaktiviert lassen, damit die Bestätigungslinks direkt auf die Anwendung führen.
-4. Eine Adresse dieser Domain als `RESEND_FROM` setzen. Die Versandberechtigung des vorhandenen Backend-Schlüssels muss diese Domain einschließen. Ausgehendes HTTPS zu api.resend.com erlauben.
+1. Im kostenlosen Mailjet-Konto unter „Domains and Sender Addresses“ eine einzelne Absenderadresse hinzufügen und den Bestätigungslink im Postfach öffnen. Der Status muss „Active“ sein. Alternativ eine eigene Absenderdomain verifizieren.
+2. Unter „API Key Management“ den vorhandenen API-Key und zugehörigen Secret Key verwenden.
+3. Beim Render-Backend `MAILJET_FROM`, `MAILJET_API_KEY` und `MAILJET_SECRET_KEY` hinterlegen und den Backend-Code neu deployen. `RESEND_FROM` und `RESEND_API_KEY` werden nicht mehr verwendet.
+4. `FRONTEND_URL=https://todo-list-frontend-165i.onrender.com` beibehalten. Das Frontend verwendet diese gemeinsame Origin auch als `VITE_BACKEND_BASE_URL`. Die Render-Rewrites `/auth/*`, `/todos` und `/todos/*` müssen vor dem SPA-Fallback auf das Backend zeigen.
+5. Über „Link erneut senden“ den Versand für ein vorhandenes unbestätigtes Konto testen. In Mailjet die Annahme und Zustellung und anschließend im Postfach den Bestätigungslink prüfen. Der API-Key muss zum aktiven Absender gehören. Für Hochschul-/Freemail-Absender ohne Domainauthentifizierung können Empfängerserver Nachrichten als Spam behandeln oder ablehnen; die Zustellung an verschiedene Anbieter muss separat getestet werden.
+
+Der Versand läuft per HTTPS über `https://api.mailjet.com/v3.1/send` mit Basic-Authentifizierung aus API-Key und Secret. Es werden weder SMTP-Ports noch zusätzliche Bibliotheken benötigt. Klick- und Öffnungstracking sind deaktiviert. Erfolg setzt sowohl einen HTTP-Erfolg als auch den Nachrichtenstatus `success` voraus; eine Provider-Annahme garantiert noch keine Zustellung.
 
 Der Provider erhält die Zieladresse und den Mailinhalt. Das Backend erzeugt 32 zufällige Bytes und setzt den URL-sicheren Token in das Fragment des Links zur konfigurierten Frontend-Origin. Beim Öffnen entfernt das Frontend das Fragment aus der Adressleiste. Erst der Button sendet den Token im POST-Body. Die Seite lädt nur eigene Ressourcen und setzt die Referrer-Policy auf no-referrer. Die Bestätigung führt zur Anmeldung.
 
 Bei fehlendem Schlüssel, fehlendem Absender, Timeout oder abgelehntem Versand meldet die API HTTP 503. Das Konto besteht weiter. Ein neuer Versuch ist nach 60 Sekunden möglich. Jeder neue Versandversuch widerruft vorherige Links. Auch ein erfolgreicher API-Versand bedeutet, dass der Anbieter die Mail angenommen hat. Die Zustellung ins Postfach muss im Deployment geprüft werden.
 
-[Resend-Domainverifizierung](https://resend.com/docs/dashboard/domains/introduction) · [Resend-Versand-API](https://resend.com/docs/api-reference/emails/send-email)
+[Mailjet-Absender verifizieren](https://documentation.mailjet.com/hc/en-us/articles/360042759253-How-to-add-a-sender-address) · [Mailjet Send API](https://dev.mailjet.com/docs/email-api/send-api-v31/send-basic-email)
 
 ## Schnittstellen und Sitzung
 
@@ -68,6 +72,6 @@ Der erste Schreibaufruf benötigt ebenfalls CSRF. Das Frontend holt den Wert vor
 
 `./gradlew test bootJar` führt die Integrationssuite mit Spring Security, MockMvc, H2 im PostgreSQL-Modus und gemocktem Mailer aus. Sie prüft unter anderem parallele Registrierung und Verifizierung, Passwortgrenzen, Erneuerung und Ablauf von Tokens, Versandfehler, Loginlimits, Sitzungswechsel, beide Sitzungsfristen, Logout, CSRF sowie fremde und besitzerlose Tasks. Es wird keine echte Mail verschickt.
 
-Mit JDK 25 wurden alle 15 Java-Quelldateien syntaktisch geprüft. Zehn Backend-Quelldateien, darunter Datenmodell, Repositories, Versand und Verifizierung, ließen sich mit den lokal vorhandenen Bibliotheken separat kompilieren.
+Die Mailjet-Anbindung wurde mit JDK 25 direkt gegen die lokal vorhandenen Bibliotheken kompiliert und mit drei JUnit-Tests geprüft: korrekte Authentifizierung/Empfänger/Bestätigungslink, Providerfehler einschließlich Nachrichtenfehler bei HTTP 200 sowie fehlende Zugangsdaten ohne Versand. Alle drei Tests sind erfolgreich; es wurde dabei keine echte Mail verschickt.
 
-Der lokale Gradle-Versuch für diese Änderung wurde vor der Kompilierung durch eine Socket-Sperre beendet. Auch Maven Central war lokal nicht auflösbar. Backendtests, JAR-Build und der gemeinsame Browsertest sind deshalb noch in einer Umgebung mit lokalen Sockets und verfügbaren Abhängigkeiten auszuführen. Die Frontend-CI bereitet dafür einen separaten PostgreSQL-Testdienst vor. Nach erfolgreichem CI-Lauf bleiben die Einrichtung der Produktionsadressen, die Absenderverifizierung und ein echter Registrierungsdurchlauf mit einem Testpostfach.
+Der vollständige Gradle-Lauf (`test bootJar`) ist lokal durch eine Socket-Sperre des Gradle-Daemons blockiert. Für den separaten Lauf der bestehenden Spring-Security-Integrationssuite fehlen lokal einige Abhängigkeiten. Vollständiger Build und Integrationssuite müssen deshalb noch in CI beziehungsweise einer Umgebung mit verfügbaren Abhängigkeiten laufen. Der echte Versandtest folgt nach Hinterlegung der Mailjet-Zugangsdaten in Render.
